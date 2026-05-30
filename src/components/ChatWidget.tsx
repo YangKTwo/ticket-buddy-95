@@ -52,19 +52,19 @@ export function ChatWidget() {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105"
+          className="fixed bottom-4 right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105 sm:bottom-6 sm:right-6 sm:h-14 sm:w-14"
           aria-label="打开 AI 助手"
         >
-          <MessageCircle className="h-6 w-6" />
+          <MessageCircle className="h-5 w-5 sm:h-6 sm:w-6" />
         </button>
       )}
 
       {open && (
-        <div className="fixed bottom-6 right-6 z-50 flex h-[520px] w-[calc(100vw-3rem)] max-w-sm flex-col overflow-hidden rounded-2xl border bg-background shadow-2xl">
-          <div className="flex items-center justify-between border-b bg-primary/5 px-4 py-3">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <div className="text-sm font-semibold">AI 智能助手（通义千问）</div>
+        <div className="fixed bottom-4 right-4 z-50 flex h-[min(380px,72vh)] w-[calc(100vw-2rem)] max-w-[280px] flex-col overflow-hidden rounded-xl border bg-background shadow-2xl sm:bottom-6 sm:right-6 sm:h-[460px] sm:max-w-xs sm:rounded-2xl md:h-[500px] lg:h-[520px] lg:max-w-sm">
+          <div className="flex items-center justify-between border-b bg-primary/5 px-3 py-2.5 sm:px-4 sm:py-3">
+            <div className="flex min-w-0 items-center gap-2">
+              <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary sm:h-4 sm:w-4" />
+              <div className="truncate text-xs font-semibold sm:text-sm">AI 智能助手（通义千问）</div>
             </div>
             <button
               onClick={() => setOpen(false)}
@@ -75,7 +75,7 @@ export function ChatWidget() {
             </button>
           </div>
 
-          <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-4">
+          <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto p-3 sm:space-y-3 sm:p-4">
             {messages.map((m, i) => (
               <div
                 key={i}
@@ -103,8 +103,9 @@ export function ChatWidget() {
             )}
           </div>
 
-          <div className="flex items-center gap-2 border-t p-3">
+          <div className="flex items-center gap-1.5 border-t p-2 sm:gap-2 sm:p-3">
             <Input
+              className="min-w-0 flex-1 text-sm sm:text-base"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {

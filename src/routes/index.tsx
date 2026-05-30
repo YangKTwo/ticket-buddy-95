@@ -56,7 +56,7 @@ function SubmitTicketPage() {
   return (
     <div className="min-h-screen bg-muted/30">
       <header className="border-b bg-background">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
+        <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-3 sm:px-6 sm:py-4">
           <div className="flex items-center gap-2 font-semibold">
             <LifeBuoy className="h-5 w-5 text-primary" />
             客服支持中心
@@ -70,20 +70,21 @@ function SubmitTicketPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-2xl px-4 py-12">
-        <Card className="shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-2xl">提交工单</CardTitle>
+      <main className="mx-auto w-full max-w-2xl px-4 py-8 sm:px-6 sm:py-12">
+        <Card className="w-full shadow-sm">
+          <CardHeader className="px-4 sm:px-6">
+            <CardTitle className="text-xl sm:text-2xl">提交工单</CardTitle>
             <CardDescription>
               请详细描述您遇到的问题，我们会通过邮箱与您联系。
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="space-y-2">
+          <CardContent className="px-4 sm:px-6">
+            <form onSubmit={handleSubmit} className="w-full space-y-4 sm:space-y-5">
+              <div className="w-full min-w-0 space-y-2">
                 <Label htmlFor="title">标题 <span className="text-destructive">*</span></Label>
                 <Input
                   id="title"
+                  className="w-full min-w-0"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="一句话概括您的问题"
@@ -91,23 +92,25 @@ function SubmitTicketPage() {
                   required
                 />
               </div>
-              <div className="space-y-2">
+              <div className="w-full min-w-0 space-y-2">
                 <Label htmlFor="description">问题描述 <span className="text-destructive">*</span></Label>
                 <Textarea
                   id="description"
+                  className="w-full min-w-0 resize-y"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="请描述问题的具体情况、复现步骤等"
-                  rows={6}
+                  rows={5}
                   maxLength={2000}
                   required
                 />
               </div>
-              <div className="space-y-2">
+              <div className="w-full min-w-0 space-y-2">
                 <Label htmlFor="email">联系人邮箱 <span className="text-destructive">*</span></Label>
                 <Input
                   id="email"
                   type="email"
+                  className="w-full min-w-0"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
