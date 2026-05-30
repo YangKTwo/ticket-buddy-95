@@ -284,6 +284,34 @@ function AdminPage() {
                 {selected?.description}
               </div>
             </div>
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <div className="text-sm font-medium">回复内容</div>
+                {selected && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleGenerateAI(selected)}
+                    disabled={aiLoadingId === selected.id}
+                  >
+                    {aiLoadingId === selected.id ? (
+                      <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="mr-1 h-4 w-4" />
+                    )}
+                    AI 生成回复
+                  </Button>
+                )}
+              </div>
+              <Textarea
+                rows={5}
+                placeholder="在此输入或由 AI 生成回复..."
+                value={selected ? replies[selected.id] ?? "" : ""}
+                onChange={(e) =>
+                  selected && setReplies((r) => ({ ...r, [selected.id]: e.target.value }))
+                }
+              />
+            </div>
           </div>
         </DialogContent>
       </Dialog>
