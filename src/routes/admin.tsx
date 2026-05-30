@@ -14,8 +14,10 @@ import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { generateAIReply } from "@/services/aiService";
 import {
-  LifeBuoy, LogOut, Inbox, Clock, CheckCircle2, ListFilter, Eye,
+  LifeBuoy, LogOut, Inbox, Clock, CheckCircle2, ListFilter, Eye, Sparkles, Loader2,
 } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
