@@ -54,6 +54,8 @@ function AdminPage() {
   const [filter, setFilter] = useState<"all" | Ticket["status"]>("all");
   const [selected, setSelected] = useState<Ticket | null>(null);
   const [loading, setLoading] = useState(true);
+  const [replies, setReplies] = useState<Record<string, string>>({});
+  const [aiLoadingId, setAiLoadingId] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
