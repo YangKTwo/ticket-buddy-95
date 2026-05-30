@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LifeBuoy } from "lucide-react";
+import { ChatWidget } from "@/components/ChatWidget";
 
 export const Route = createFileRoute("/")({
   head: () => ({
