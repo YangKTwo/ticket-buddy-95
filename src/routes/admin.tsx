@@ -235,10 +235,26 @@ function AdminPage() {
                           {new Date(t.created_at).toLocaleString("zh-CN")}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="sm" onClick={() => setSelected(t)}>
-                            <Eye className="mr-1 h-4 w-4" />查看详情
-                          </Button>
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleGenerateAI(t)}
+                              disabled={aiLoadingId === t.id}
+                            >
+                              {aiLoadingId === t.id ? (
+                                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                              ) : (
+                                <Sparkles className="mr-1 h-4 w-4" />
+                              )}
+                              AI生成回复
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => setSelected(t)}>
+                              <Eye className="mr-1 h-4 w-4" />查看详情
+                            </Button>
+                          </div>
                         </TableCell>
+
                       </TableRow>
                     ))}
                   </TableBody>
