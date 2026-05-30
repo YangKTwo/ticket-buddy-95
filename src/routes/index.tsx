@@ -122,6 +122,7 @@ function SubmitTicketPage() {
           </CardContent>
         </Card>
       </main>
+      <ChatWidget />
     </div>
   );
 }
