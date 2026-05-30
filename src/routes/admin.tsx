@@ -14,8 +14,10 @@ import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { generateAIReply } from "@/services/aiService";
 import {
-  LifeBuoy, LogOut, Inbox, Clock, CheckCircle2, ListFilter, Eye,
+  LifeBuoy, LogOut, Inbox, Clock, CheckCircle2, ListFilter, Eye, Sparkles, Loader2,
 } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
@@ -52,6 +54,8 @@ function AdminPage() {
   const [filter, setFilter] = useState<"all" | Ticket["status"]>("all");
   const [selected, setSelected] = useState<Ticket | null>(null);
   const [loading, setLoading] = useState(true);
+  const [replies, setReplies] = useState<Record<string, string>>({});
+  const [aiLoadingId, setAiLoadingId] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -107,6 +111,22 @@ function AdminPage() {
       toast.success("状态已更新");
     }
   };
+
+  const handleGenerateAI = async (t: Ticket) => {
+    setAiLoadingId(t.id);
+    try {
+      const reply = await generateAIReply(t.title, t.description);
+      setReplies((r) => ({ ...r, [t.id]: reply }));
+      setSelected(t);
+      toast.success("AI 回复已生成");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "未知错误";
+      toast.error("生成失败：" + msg);
+    } finally {
+      setAiLoadingId(null);
+    }
+  };
+
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -215,10 +235,26 @@ function AdminPage() {
                           {new Date(t.created_at).toLocaleString("zh-CN")}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="sm" onClick={() => setSelected(t)}>
-                            <Eye className="mr-1 h-4 w-4" />查看详情
-                          </Button>
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleGenerateAI(t)}
+                              disabled={aiLoadingId === t.id}
+                            >
+                              {aiLoadingId === t.id ? (
+                                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                              ) : (
+                                <Sparkles className="mr-1 h-4 w-4" />
+                              )}
+                              AI生成回复
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => setSelected(t)}>
+                              <Eye className="mr-1 h-4 w-4" />查看详情
+                            </Button>
+                          </div>
                         </TableCell>
+
                       </TableRow>
                     ))}
                   </TableBody>
@@ -247,6 +283,34 @@ function AdminPage() {
               <div className="whitespace-pre-wrap rounded-md border bg-muted/30 p-3 text-sm">
                 {selected?.description}
               </div>
+            </div>
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <div className="text-sm font-medium">回复内容</div>
+                {selected && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleGenerateAI(selected)}
+                    disabled={aiLoadingId === selected.id}
+                  >
+                    {aiLoadingId === selected.id ? (
+                      <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="mr-1 h-4 w-4" />
+                    )}
+                    AI 生成回复
+                  </Button>
+                )}
+              </div>
+              <Textarea
+                rows={5}
+                placeholder="在此输入或由 AI 生成回复..."
+                value={selected ? replies[selected.id] ?? "" : ""}
+                onChange={(e) =>
+                  selected && setReplies((r) => ({ ...r, [selected.id]: e.target.value }))
+                }
+              />
             </div>
           </div>
         </DialogContent>
