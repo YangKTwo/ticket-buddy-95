@@ -112,6 +112,22 @@ function AdminPage() {
     }
   };
 
+  const handleGenerateAI = async (t: Ticket) => {
+    setAiLoadingId(t.id);
+    try {
+      const reply = await generateAIReply(t.title, t.description);
+      setReplies((r) => ({ ...r, [t.id]: reply }));
+      setSelected(t);
+      toast.success("AI 回复已生成");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "未知错误";
+      toast.error("生成失败：" + msg);
+    } finally {
+      setAiLoadingId(null);
+    }
+  };
+
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate({ to: "/login", replace: true });
