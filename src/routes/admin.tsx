@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { generateAIReply } from "@/services/aiService";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationEllipsis,
+} from "@/components/ui/pagination";
+import {
   LifeBuoy,
   LogOut,
   Inbox,
@@ -58,6 +67,8 @@ type Ticket = {
   updated_at: string;
 };
 
+const PAGE_SIZE = 10;
+
 const STATUS_LABEL: Record<Ticket["status"], string> = {
   pending: "待处理",
   processing: "处理中",
@@ -80,6 +91,11 @@ function AdminPage() {
   const [replies, setReplies] = useState<Record<string, string>>({});
   const [aiLoadingId, setAiLoadingId] = useState<string | null>(null);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [allTickets, setAllTickets] = useState<Ticket[]>([]);
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -95,41 +111,63 @@ function AdminPage() {
     return () => sub.subscription.unsubscribe();
   }, [navigate]);
 
-  const fetchTickets = async () => {
-    setLoading(true);
+  // Fetch _all_ tickets once for stats (no pagination on stats)
+  const fetchAllForStats = useCallback(async () => {
     const { data, error } = await supabase
       .from("tickets")
       .select("*")
       .order("created_at", { ascending: false });
+    if (!error && data) {
+      setAllTickets(data as Ticket[]);
+    }
+  }, []);
+
+  // Fetch paginated tickets with optional status filter
+  const fetchTickets = useCallback(async () => {
+    setLoading(true);
+    let query = supabase.from("tickets").select("*", { count: "exact" });
+    if (filter !== "all") {
+      query = query.eq("status", filter);
+    }
+    const from = (page - 1) * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+    const { data, error, count } = await query
+      .order("created_at", { ascending: false })
+      .range(from, to);
     setLoading(false);
     if (error) {
       toast.error("加载工单失败：" + error.message);
       return;
     }
     setTickets((data ?? []) as Ticket[]);
-  };
+    setTotalCount(count ?? 0);
+  }, [filter, page]);
 
   useEffect(() => {
-    if (authChecked) fetchTickets();
-  }, [authChecked]);
+    if (authChecked) {
+      fetchAllForStats();
+      fetchTickets();
+    }
+  }, [authChecked, fetchTickets, fetchAllForStats]);
+
+  // Reset page when filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [filter]);
 
   const stats = useMemo(
     () => ({
-      total: tickets.length,
-      pending: tickets.filter((t) => t.status === "pending").length,
-      resolved: tickets.filter((t) => t.status === "resolved").length,
+      total: allTickets.length,
+      pending: allTickets.filter((t) => t.status === "pending").length,
+      resolved: allTickets.filter((t) => t.status === "resolved").length,
     }),
-    [tickets],
-  );
-
-  const filtered = useMemo(
-    () => (filter === "all" ? tickets : tickets.filter((t) => t.status === filter)),
-    [tickets, filter],
+    [allTickets],
   );
 
   const updateStatus = async (id: string, status: Ticket["status"]) => {
     const prev = tickets;
     setTickets((ts) => ts.map((t) => (t.id === id ? { ...t, status } : t)));
+    setAllTickets((ts) => ts.map((t) => (t.id === id ? { ...t, status } : t)));
     const { error } = await supabase.from("tickets").update({ status }).eq("id", id);
     if (error) {
       setTickets(prev);
@@ -159,17 +197,30 @@ function AdminPage() {
     navigate({ to: "/login", replace: true });
   };
 
+  // Build page numbers for pagination
+  const pageNumbers = useMemo(() => {
+    const pages: number[] = [];
+    const maxVisible = 5;
+    let start = Math.max(1, page - Math.floor(maxVisible / 2));
+    const end = Math.min(totalPages, start + maxVisible - 1);
+    if (end - start + 1 < maxVisible) {
+      start = Math.max(1, end - maxVisible + 1);
+    }
+    for (let i = start; i <= end; i++) pages.push(i);
+    return pages;
+  }, [page, totalPages]);
+
   if (!authChecked) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-muted-foreground">
+      <div className="flex h-screen items-center justify-center text-muted-foreground">
         加载中...
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-muted/30">
-      {/* Desktop sidebar */}
+    <div className="flex h-screen overflow-hidden bg-muted/30">
+      {/* Desktop sidebar — fixed, independent scroll */}
       <aside className="hidden w-60 shrink-0 flex-col border-r bg-background md:flex">
         <AdminSidebarNav onLogout={handleLogout} />
       </aside>
@@ -188,9 +239,10 @@ function AdminPage() {
         </SheetContent>
       </Sheet>
 
-      {/* Main */}
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 items-center justify-between gap-3 border-b bg-background px-4 sm:h-16 sm:px-6">
+      {/* Main — fills remaining width, no page-level scroll */}
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        {/* Fixed top header */}
+        <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b bg-background px-4 sm:h-16 sm:px-6">
           <div className="flex min-w-0 items-center gap-2">
             <Button
               variant="ghost"
@@ -209,9 +261,10 @@ function AdminPage() {
           </Button>
         </header>
 
-        <main className="flex-1 space-y-4 p-4 sm:space-y-6 sm:p-6">
-          {/* Stats */}
-          <div className="grid gap-4 sm:grid-cols-3">
+        {/* Scrollable main area */}
+        <main className="flex min-h-0 flex-1 flex-col space-y-4 overflow-y-auto p-4 sm:space-y-6 sm:p-6">
+          {/* Stats — always at top */}
+          <div className="grid shrink-0 gap-4 sm:grid-cols-3">
             <StatCard icon={<Inbox className="h-5 w-5" />} label="总工单数" value={stats.total} />
             <StatCard icon={<Clock className="h-5 w-5" />} label="待处理" value={stats.pending} />
             <StatCard
@@ -221,9 +274,9 @@ function AdminPage() {
             />
           </div>
 
-          {/* Filter */}
-          <Card>
-            <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
+          {/* Ticket list card — fills remaining space, internal scroll */}
+          <Card className="flex min-h-0 flex-1 flex-col">
+            <CardHeader className="flex shrink-0 flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="text-base">工单列表</CardTitle>
               <div className="flex w-full items-center gap-2 sm:w-auto">
                 <ListFilter className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -240,15 +293,17 @@ function AdminPage() {
                 </Select>
               </div>
             </CardHeader>
-            <CardContent>
+
+            {/* Scrollable list body */}
+            <CardContent className="flex min-h-0 flex-1 flex-col overflow-y-auto">
               {/* Mobile: card list */}
-              <div className="space-y-3 md:hidden">
+              <div className="min-h-0 space-y-3 md:hidden">
                 {loading ? (
                   <p className="py-10 text-center text-sm text-muted-foreground">加载中...</p>
-                ) : filtered.length === 0 ? (
+                ) : tickets.length === 0 ? (
                   <p className="py-10 text-center text-sm text-muted-foreground">暂无工单</p>
                 ) : (
-                  filtered.map((t) => (
+                  tickets.map((t) => (
                     <TicketCard
                       key={t.id}
                       ticket={t}
@@ -262,7 +317,7 @@ function AdminPage() {
               </div>
 
               {/* Desktop: table */}
-              <div className="hidden overflow-x-auto md:block">
+              <div className="hidden min-h-0 overflow-x-auto md:block">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -280,14 +335,14 @@ function AdminPage() {
                           加载中...
                         </TableCell>
                       </TableRow>
-                    ) : filtered.length === 0 ? (
+                    ) : tickets.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
                           暂无工单
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filtered.map((t) => (
+                      tickets.map((t) => (
                         <TableRow key={t.id}>
                           <TableCell className="max-w-[260px] truncate font-medium">
                             {t.title}
@@ -315,6 +370,90 @@ function AdminPage() {
                 </Table>
               </div>
             </CardContent>
+
+            {/* Pagination footer — fixed at bottom of card */}
+            {totalPages > 1 && (
+              <div className="shrink-0 border-t px-4 py-3">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (page > 1) setPage((p) => p - 1);
+                        }}
+                        className={page <= 1 ? "pointer-events-none opacity-50" : ""}
+                      />
+                    </PaginationItem>
+                    {pageNumbers[0] > 1 && (
+                      <>
+                        <PaginationItem>
+                          <PaginationLink
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setPage(1);
+                            }}
+                          >
+                            1
+                          </PaginationLink>
+                        </PaginationItem>
+                        {pageNumbers[0] > 2 && (
+                          <PaginationItem>
+                            <PaginationEllipsis />
+                          </PaginationItem>
+                        )}
+                      </>
+                    )}
+                    {pageNumbers.map((p) => (
+                      <PaginationItem key={p}>
+                        <PaginationLink
+                          href="#"
+                          isActive={p === page}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setPage(p);
+                          }}
+                        >
+                          {p}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+                    {pageNumbers[pageNumbers.length - 1] < totalPages && (
+                      <>
+                        {pageNumbers[pageNumbers.length - 1] < totalPages - 1 && (
+                          <PaginationItem>
+                            <PaginationEllipsis />
+                          </PaginationItem>
+                        )}
+                        <PaginationItem>
+                          <PaginationLink
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setPage(totalPages);
+                            }}
+                          >
+                            {totalPages}
+                          </PaginationLink>
+                        </PaginationItem>
+                      </>
+                    )}
+                    <PaginationItem>
+                      <PaginationNext
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (page < totalPages) setPage((p) => p + 1);
+                        }}
+                        className={page >= totalPages ? "pointer-events-none opacity-50" : ""}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
           </Card>
         </main>
       </div>

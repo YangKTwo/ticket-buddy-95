@@ -142,3 +142,53 @@
     color: var(--color-foreground);
   }
 }
+
+/* ─── Markdown 消息内容样式 ─── */
+.md-content p {
+  margin: 0;
+}
+.md-content p + p {
+  margin-top: 0.5em;
+}
+.md-content strong {
+  font-weight: 600;
+  color: inherit;
+}
+.md-content em {
+  font-style: italic;
+  opacity: 0.9;
+}
+.md-content ol,
+.md-content ul {
+  margin: 0.25em 0;
+  padding-left: 1.25em;
+}
+.md-content li {
+  margin: 0.125em 0;
+}
+.md-content .inline-code {
+  display: inline-block;
+  font-size: 0.85em;
+  font-family: "SF Mono", "Cascadia Code", "Fira Code", monospace;
+  background: oklch(0 0 0 / 0.08);
+  border-radius: 3px;
+  padding: 0.05em 0.35em;
+  margin: 0 0.1em;
+}
+.md-content a {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+/* ─── 流式输出闪烁光标 ─── */
+@keyframes blink-cursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.streaming-cursor::after {
+  content: "▍";
+  display: inline;
+  animation: blink-cursor 1s step-end infinite;
+  color: var(--color-primary);
+  margin-left: 1px;
+}

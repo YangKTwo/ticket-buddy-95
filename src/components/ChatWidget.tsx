@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MessageCircle, X, Send, Sparkles, Loader2 } from "lucide-react";
 import { chatWithAIStream } from "@/services/aiService";
+import { MarkdownContent } from "@/components/MarkdownContent";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -94,28 +95,37 @@ export function ChatWidget() {
           </div>
 
           <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto p-3 sm:space-y-3 sm:p-4">
-            {messages.map((m, i) => (
-              <div
-                key={i}
-                className={cn("flex", m.role === "user" ? "justify-end" : "justify-start")}
-              >
+            {messages.map((m, i) => {
+              const isStreaming =
+                loading && m.role === "assistant" && i === messages.length - 1;
+              return (
                 <div
-                  className={cn(
-                    "max-w-[85%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-sm",
-                    m.role === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-foreground",
-                  )}
+                  key={i}
+                  className={cn("flex", m.role === "user" ? "justify-end" : "justify-start")}
                 >
-                  {m.content}
+                  <div
+                    className={cn(
+                      "max-w-[85%] rounded-2xl px-3 py-2 text-sm",
+                      m.role === "user"
+                        ? "bg-primary text-primary-foreground whitespace-pre-wrap"
+                        : cn("bg-muted text-foreground", isStreaming && !!m.content && "streaming-cursor"),
+                    )}
+                  >
+                    {m.role === "assistant" ? (
+                      <MarkdownContent content={m.content} />
+                    ) : (
+                      m.content
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             {loading && messages[messages.length - 1]?.content === "" && (
               <div className="flex justify-start">
                 <div className="flex items-center gap-2 rounded-2xl bg-muted px-3 py-2 text-sm text-muted-foreground">
                   <Loader2 className="h-3 w-3 animate-spin" />
-                  思考中...
+                  正在分析问题
+                  <span className="inline-flex w-4 animate-pulse">...</span>
                 </div>
               </div>
             )}
