@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MessageCircle, X, Send, Sparkles, Loader2 } from "lucide-react";
-import { chatWithAI } from "@/services/aiService";
+import { chatWithAIStream } from "@/services/aiService";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -25,7 +25,7 @@ export function ChatWidget() {
     const text = input.trim();
     if (!text || loading) return;
     const next: Msg[] = [...messages, { role: "user", content: text }];
-    setMessages(next);
+    setMessages([...next, { role: "assistant", content: "" }]);
     setInput("");
     setLoading(true);
     try {
@@ -33,15 +33,31 @@ export function ChatWidget() {
         .filter((m) => m.role === "user" || m.role === "assistant")
         .slice(-10)
         .map((m) => ({ role: m.role, content: m.content }));
-      const reply = await chatWithAI(text, history.slice(0, -1));
-      setMessages((prev) => [...prev, { role: "assistant", content: reply || "（无回复）" }]);
+      const stream = chatWithAIStream(text, history.slice(0, -1));
+      let full = "";
+      for await (const chunk of stream) {
+        full += chunk;
+        setMessages((prev) => {
+          const updated = [...prev];
+          updated[updated.length - 1] = { role: "assistant", content: full };
+          return updated;
+        });
+      }
+      if (!full) {
+        setMessages((prev) => {
+          const updated = [...prev];
+          updated[updated.length - 1] = { role: "assistant", content: "（无回复）" };
+          return updated;
+        });
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "未知错误";
       toast.error("AI 调用失败：" + msg);
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: "抱歉，AI 服务暂时不可用，请稍后再试或提交工单。" },
-      ]);
+      setMessages((prev) => {
+        const updated = [...prev];
+        updated[updated.length - 1] = { role: "assistant", content: "抱歉，AI 服务暂时不可用，请稍后再试或提交工单。" };
+        return updated;
+      });
     } finally {
       setLoading(false);
     }
@@ -64,7 +80,9 @@ export function ChatWidget() {
           <div className="flex items-center justify-between border-b bg-primary/5 px-3 py-2.5 sm:px-4 sm:py-3">
             <div className="flex min-w-0 items-center gap-2">
               <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary sm:h-4 sm:w-4" />
-              <div className="truncate text-xs font-semibold sm:text-sm">AI 智能助手（通义千问）</div>
+              <div className="truncate text-xs font-semibold sm:text-sm">
+                AI 智能助手（通义千问）
+              </div>
             </div>
             <button
               onClick={() => setOpen(false)}
@@ -93,7 +111,7 @@ export function ChatWidget() {
                 </div>
               </div>
             ))}
-            {loading && (
+            {loading && messages[messages.length - 1]?.content === "" && (
               <div className="flex justify-start">
                 <div className="flex items-center gap-2 rounded-2xl bg-muted px-3 py-2 text-sm text-muted-foreground">
                   <Loader2 className="h-3 w-3 animate-spin" />

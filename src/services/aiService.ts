@@ -41,3 +41,30 @@ export async function chatWithAI(
   });
   return response.choices[0].message.content || "";
 }
+
+export async function* chatWithAIStream(
+  userMessage: string,
+  history: Array<{ role: "user" | "assistant"; content: string }>,
+): AsyncGenerator<string> {
+  const stream = await client.chat.completions.create({
+    model: "qwen3.6-plus",
+    messages: [
+      {
+        role: "system",
+        content:
+          '你是客服助手，帮助用户解决问题。如果用户的问题超出范围或你无法解决，请回复："这个问题需要人工客服处理，请提交工单，我们会尽快联系您。"',
+      },
+      ...history,
+      { role: "user", content: userMessage },
+    ],
+    temperature: 0.7,
+    stream: true,
+  });
+
+  for await (const chunk of stream) {
+    const content = chunk.choices[0]?.delta?.content;
+    if (content) {
+      yield content;
+    }
+  }
+}

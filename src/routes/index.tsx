@@ -61,10 +61,7 @@ function SubmitTicketPage() {
             <LifeBuoy className="h-5 w-5 text-primary" />
             客服支持中心
           </div>
-          <Link
-            to="/login"
-            className="text-sm text-muted-foreground hover:text-foreground"
-          >
+          <Link to="/login" className="text-sm text-muted-foreground hover:text-foreground">
             管理员登录
           </Link>
         </div>
@@ -74,14 +71,14 @@ function SubmitTicketPage() {
         <Card className="w-full shadow-sm">
           <CardHeader className="px-4 sm:px-6">
             <CardTitle className="text-xl sm:text-2xl">提交工单</CardTitle>
-            <CardDescription>
-              请详细描述您遇到的问题，我们会通过邮箱与您联系。
-            </CardDescription>
+            <CardDescription>请详细描述您遇到的问题，我们会通过邮箱与您联系。</CardDescription>
           </CardHeader>
           <CardContent className="px-4 sm:px-6">
             <form onSubmit={handleSubmit} className="w-full space-y-4 sm:space-y-5">
               <div className="w-full min-w-0 space-y-2">
-                <Label htmlFor="title">标题 <span className="text-destructive">*</span></Label>
+                <Label htmlFor="title">
+                  标题 <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   id="title"
                   className="w-full min-w-0"
@@ -93,7 +90,9 @@ function SubmitTicketPage() {
                 />
               </div>
               <div className="w-full min-w-0 space-y-2">
-                <Label htmlFor="description">问题描述 <span className="text-destructive">*</span></Label>
+                <Label htmlFor="description">
+                  问题描述 <span className="text-destructive">*</span>
+                </Label>
                 <Textarea
                   id="description"
                   className="w-full min-w-0 resize-y"
@@ -106,7 +105,9 @@ function SubmitTicketPage() {
                 />
               </div>
               <div className="w-full min-w-0 space-y-2">
-                <Label htmlFor="email">联系人邮箱 <span className="text-destructive">*</span></Label>
+                <Label htmlFor="email">
+                  联系人邮箱 <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   id="email"
                   type="email"

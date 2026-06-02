@@ -5,13 +5,26 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -100,20 +113,23 @@ function AdminPage() {
     if (authChecked) fetchTickets();
   }, [authChecked]);
 
-  const stats = useMemo(() => ({
-    total: tickets.length,
-    pending: tickets.filter((t) => t.status === "pending").length,
-    resolved: tickets.filter((t) => t.status === "resolved").length,
-  }), [tickets]);
+  const stats = useMemo(
+    () => ({
+      total: tickets.length,
+      pending: tickets.filter((t) => t.status === "pending").length,
+      resolved: tickets.filter((t) => t.status === "resolved").length,
+    }),
+    [tickets],
+  );
 
   const filtered = useMemo(
-    () => filter === "all" ? tickets : tickets.filter((t) => t.status === filter),
+    () => (filter === "all" ? tickets : tickets.filter((t) => t.status === filter)),
     [tickets, filter],
   );
 
   const updateStatus = async (id: string, status: Ticket["status"]) => {
     const prev = tickets;
-    setTickets((ts) => ts.map((t) => t.id === id ? { ...t, status } : t));
+    setTickets((ts) => ts.map((t) => (t.id === id ? { ...t, status } : t)));
     const { error } = await supabase.from("tickets").update({ status }).eq("id", id);
     if (error) {
       setTickets(prev);
@@ -137,7 +153,6 @@ function AdminPage() {
       setAiLoadingId(null);
     }
   };
-
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -199,7 +214,11 @@ function AdminPage() {
           <div className="grid gap-4 sm:grid-cols-3">
             <StatCard icon={<Inbox className="h-5 w-5" />} label="总工单数" value={stats.total} />
             <StatCard icon={<Clock className="h-5 w-5" />} label="待处理" value={stats.pending} />
-            <StatCard icon={<CheckCircle2 className="h-5 w-5" />} label="已解决" value={stats.resolved} />
+            <StatCard
+              icon={<CheckCircle2 className="h-5 w-5" />}
+              label="已解决"
+              value={stats.resolved}
+            />
           </div>
 
           {/* Filter */}
@@ -270,7 +289,9 @@ function AdminPage() {
                     ) : (
                       filtered.map((t) => (
                         <TableRow key={t.id}>
-                          <TableCell className="max-w-[260px] truncate font-medium">{t.title}</TableCell>
+                          <TableCell className="max-w-[260px] truncate font-medium">
+                            {t.title}
+                          </TableCell>
                           <TableCell className="text-muted-foreground">{t.email}</TableCell>
                           <TableCell>
                             <TicketStatusControl ticket={t} onUpdateStatus={updateStatus} compact />
@@ -303,13 +324,18 @@ function AdminPage() {
           <DialogHeader>
             <DialogTitle>{selected?.title}</DialogTitle>
             <DialogDescription>
-              来自 {selected?.email} · {selected && new Date(selected.created_at).toLocaleString("zh-CN")}
+              来自 {selected?.email} ·{" "}
+              {selected && new Date(selected.created_at).toLocaleString("zh-CN")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-sm">
               <span className="text-muted-foreground">状态：</span>
-              {selected && <Badge variant={STATUS_VARIANT[selected.status]}>{STATUS_LABEL[selected.status]}</Badge>}
+              {selected && (
+                <Badge variant={STATUS_VARIANT[selected.status]}>
+                  {STATUS_LABEL[selected.status]}
+                </Badge>
+              )}
             </div>
             <div>
               <div className="mb-2 text-sm font-medium">问题描述</div>
@@ -339,7 +365,7 @@ function AdminPage() {
               <Textarea
                 rows={5}
                 placeholder="在此输入或由 AI 生成回复..."
-                value={selected ? replies[selected.id] ?? "" : ""}
+                value={selected ? (replies[selected.id] ?? "") : ""}
                 onChange={(e) =>
                   selected && setReplies((r) => ({ ...r, [selected.id]: e.target.value }))
                 }
@@ -391,7 +417,11 @@ function TicketStatusControl({
   compact?: boolean;
 }) {
   return (
-    <div className={compact ? "flex items-center gap-2" : "flex flex-col gap-2 sm:flex-row sm:items-center"}>
+    <div
+      className={
+        compact ? "flex items-center gap-2" : "flex flex-col gap-2 sm:flex-row sm:items-center"
+      }
+    >
       <Badge variant={STATUS_VARIANT[ticket.status]}>{STATUS_LABEL[ticket.status]}</Badge>
       <Select
         value={ticket.status}
@@ -426,11 +456,7 @@ function TicketActions({
   const loading = aiLoadingId === ticket.id;
   return (
     <div
-      className={
-        layout === "row"
-          ? "flex justify-end gap-1"
-          : "flex flex-col gap-2 sm:flex-row"
-      }
+      className={layout === "row" ? "flex justify-end gap-1" : "flex flex-col gap-2 sm:flex-row"}
     >
       <Button
         variant="outline"

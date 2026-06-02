@@ -79,7 +79,9 @@ function LoginPage() {
               {loading ? "登录中..." : "登录"}
             </Button>
             <div className="text-center text-sm text-muted-foreground">
-              <Link to="/" className="hover:text-foreground">返回首页</Link>
+              <Link to="/" className="hover:text-foreground">
+                返回首页
+              </Link>
             </div>
           </form>
         </CardContent>
