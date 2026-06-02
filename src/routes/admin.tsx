@@ -264,7 +264,7 @@ function AdminPage() {
         {/* Scrollable main area */}
         <main className="flex min-h-0 flex-1 flex-col space-y-4 overflow-y-auto p-4 sm:space-y-6 sm:p-6">
           {/* Stats — always at top */}
-          <div className="grid shrink-0 gap-4 sm:grid-cols-3">
+          <div className="grid shrink-0 grid-cols-3 gap-2 sm:gap-4">
             <StatCard icon={<Inbox className="h-5 w-5" />} label="总工单数" value={stats.total} />
             <StatCard icon={<Clock className="h-5 w-5" />} label="待处理" value={stats.pending} />
             <StatCard
@@ -663,12 +663,14 @@ function TicketCard({
 function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
   return (
     <Card>
-      <CardContent className="flex items-center justify-between p-4 sm:p-6">
-        <div>
-          <div className="text-sm text-muted-foreground">{label}</div>
-          <div className="mt-1 text-2xl font-semibold sm:text-3xl">{value}</div>
+      <CardContent className="flex items-center justify-between p-2.5 sm:p-6">
+        <div className="min-w-0">
+          <div className="truncate text-xs text-muted-foreground sm:text-sm">{label}</div>
+          <div className="mt-0.5 text-lg font-semibold leading-tight sm:mt-1 sm:text-3xl">
+            {value}
+          </div>
         </div>
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary sm:h-10 sm:w-10">
+        <div className="ml-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary sm:h-10 sm:w-10 [&>svg]:h-3.5 [&>svg]:w-3.5 sm:[&>svg]:h-5 sm:[&>svg]:w-5">
           {icon}
         </div>
       </CardContent>
