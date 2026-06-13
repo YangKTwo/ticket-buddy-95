@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -50,6 +51,9 @@ import {
   Sparkles,
   Loader2,
   Menu,
+  Search,
+  Send,
+  User,
 } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
@@ -65,6 +69,14 @@ type Ticket = {
   status: "pending" | "processing" | "resolved";
   created_at: string;
   updated_at: string;
+};
+
+type Reply = {
+  id: string;
+  ticket_id: string;
+  content: string;
+  is_ai_generated: boolean;
+  created_at: string;
 };
 
 const PAGE_SIZE = 10;
@@ -94,6 +106,10 @@ function AdminPage() {
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [allTickets, setAllTickets] = useState<Ticket[]>([]);
+  const [search, setSearch] = useState("");
+  const [ticketReplies, setTicketReplies] = useState<Reply[]>([]);
+  const [sendingReply, setSendingReply] = useState(false);
+  const [replyingTicketId, setReplyingTicketId] = useState<string | null>(null);
 
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
@@ -122,12 +138,16 @@ function AdminPage() {
     }
   }, []);
 
-  // Fetch paginated tickets with optional status filter
+  // Fetch paginated tickets with optional status filter and search
   const fetchTickets = useCallback(async () => {
     setLoading(true);
     let query = supabase.from("tickets").select("*", { count: "exact" });
     if (filter !== "all") {
       query = query.eq("status", filter);
+    }
+    if (search.trim()) {
+      const term = `%${search.trim()}%`;
+      query = query.or(`title.ilike.${term},email.ilike.${term}`);
     }
     const from = (page - 1) * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
@@ -141,7 +161,7 @@ function AdminPage() {
     }
     setTickets((data ?? []) as Ticket[]);
     setTotalCount(count ?? 0);
-  }, [filter, page]);
+  }, [filter, page, search]);
 
   useEffect(() => {
     if (authChecked) {
@@ -150,10 +170,24 @@ function AdminPage() {
     }
   }, [authChecked, fetchTickets, fetchAllForStats]);
 
-  // Reset page when filter changes
+  // Reset page when filter or search changes
   useEffect(() => {
     setPage(1);
-  }, [filter]);
+  }, [filter, search]);
+
+  // Fetch replies when a ticket is selected
+  useEffect(() => {
+    if (!selected) {
+      setTicketReplies([]);
+      return;
+    }
+    supabase
+      .from("replies")
+      .select("*")
+      .eq("ticket_id", selected.id)
+      .order("created_at", { ascending: true })
+      .then(({ data }) => setTicketReplies((data ?? []) as Reply[]));
+  }, [selected]);
 
   const stats = useMemo(
     () => ({
@@ -190,6 +224,53 @@ function AdminPage() {
     } finally {
       setAiLoadingId(null);
     }
+  };
+
+  const handleSendReply = async (ticket: Ticket) => {
+    const content = (replies[ticket.id] ?? "").trim();
+    if (!content) {
+      toast.error("请先输入或生成回复内容");
+      return;
+    }
+    setSendingReply(true);
+    setReplyingTicketId(ticket.id);
+    const isAiGenerated = aiLoadingId === ticket.id || replies[ticket.id]?.length > 0;
+    const { error } = await supabase.from("replies").insert({
+      ticket_id: ticket.id,
+      content,
+      is_ai_generated: false,
+    });
+    if (error) {
+      toast.error("发送失败：" + error.message);
+      setSendingReply(false);
+      setReplyingTicketId(null);
+      return;
+    }
+
+    // If ticket was pending, move to processing
+    if (ticket.status === "pending") {
+      await supabase.from("tickets").update({ status: "processing" }).eq("id", ticket.id);
+      setTickets((ts) =>
+        ts.map((t) => (t.id === ticket.id ? { ...t, status: "processing" as const } : t)),
+      );
+      setAllTickets((ts) =>
+        ts.map((t) => (t.id === ticket.id ? { ...t, status: "processing" as const } : t)),
+      );
+    }
+
+    toast.success("回复已发送");
+    setReplies((r) => ({ ...r, [ticket.id]: "" }));
+
+    // Refresh replies
+    const { data: freshReplies } = await supabase
+      .from("replies")
+      .select("*")
+      .eq("ticket_id", ticket.id)
+      .order("created_at", { ascending: true });
+    setTicketReplies((freshReplies ?? []) as Reply[]);
+
+    setSendingReply(false);
+    setReplyingTicketId(null);
   };
 
   const handleLogout = async () => {
@@ -278,8 +359,18 @@ function AdminPage() {
           <Card className="flex min-h-0 flex-1 flex-col">
             <CardHeader className="flex shrink-0 flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="text-base">工单列表</CardTitle>
-              <div className="flex w-full items-center gap-2 sm:w-auto">
-                <ListFilter className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+                <div className="relative w-full sm:w-52">
+                  <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    className="pl-8 text-sm"
+                    placeholder="搜索标题或邮箱..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <ListFilter className="h-4 w-4 shrink-0 text-muted-foreground" />
                 <Select value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
                   <SelectTrigger className="w-full min-w-0 sm:w-36">
                     <SelectValue />
@@ -291,6 +382,7 @@ function AdminPage() {
                     <SelectItem value="resolved">已解决</SelectItem>
                   </SelectContent>
                 </Select>
+                </div>
               </div>
             </CardHeader>
 
@@ -467,7 +559,7 @@ function AdminPage() {
               {selected && new Date(selected.created_at).toLocaleString("zh-CN")}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="flex items-center gap-2 text-sm">
               <span className="text-muted-foreground">状态：</span>
               {selected && (
@@ -482,9 +574,46 @@ function AdminPage() {
                 {selected?.description}
               </div>
             </div>
+
+            {/* Existing replies */}
+            {ticketReplies.length > 0 && (
+              <div>
+                <div className="mb-2 text-sm font-medium">回复记录</div>
+                <div className="space-y-3">
+                  {ticketReplies.map((reply) => (
+                    <div key={reply.id} className="flex gap-2.5">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                        {reply.is_ai_generated ? (
+                          <Sparkles className="h-3.5 w-3.5 text-primary" />
+                        ) : (
+                          <User className="h-3.5 w-3.5 text-primary" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium">
+                            {reply.is_ai_generated ? "AI 助手" : "客服"}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(reply.created_at).toLocaleString("zh-CN")}
+                          </span>
+                        </div>
+                        <div className="mt-1 whitespace-pre-wrap rounded-lg bg-muted/50 px-3 py-2 text-sm">
+                          {reply.content}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Reply editor */}
             <div>
               <div className="mb-2 flex items-center justify-between">
-                <div className="text-sm font-medium">回复内容</div>
+                <div className="text-sm font-medium">
+                  {ticketReplies.length > 0 ? "追加回复" : "回复内容"}
+                </div>
                 {selected && (
                   <Button
                     variant="outline"
@@ -502,13 +631,29 @@ function AdminPage() {
                 )}
               </div>
               <Textarea
-                rows={5}
+                rows={4}
                 placeholder="在此输入或由 AI 生成回复..."
                 value={selected ? (replies[selected.id] ?? "") : ""}
                 onChange={(e) =>
                   selected && setReplies((r) => ({ ...r, [selected.id]: e.target.value }))
                 }
               />
+              {selected && (
+                <Button
+                  className="mt-2 w-full"
+                  onClick={() => handleSendReply(selected)}
+                  disabled={
+                    sendingReply && replyingTicketId === selected.id
+                  }
+                >
+                  {sendingReply && replyingTicketId === selected.id ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="mr-2 h-4 w-4" />
+                  )}
+                  发送回复
+                </Button>
+              )}
             </div>
           </div>
         </DialogContent>

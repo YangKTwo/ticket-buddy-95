@@ -61,9 +61,14 @@ function SubmitTicketPage() {
             <LifeBuoy className="h-5 w-5 text-primary" />
             客服支持中心
           </div>
-          <Link to="/login" className="text-sm text-muted-foreground hover:text-foreground">
-            管理员登录
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link to="/track" className="text-sm text-muted-foreground hover:text-foreground">
+              查询工单
+            </Link>
+            <Link to="/login" className="text-sm text-muted-foreground hover:text-foreground">
+              管理员登录
+            </Link>
+          </div>
         </div>
       </header>
 

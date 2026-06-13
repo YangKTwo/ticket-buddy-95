@@ -38,6 +38,37 @@ export type Database = {
         };
         Relationships: [];
       };
+      replies: {
+        Row: {
+          id: string;
+          ticket_id: string;
+          content: string;
+          is_ai_generated: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          ticket_id: string;
+          content: string;
+          is_ai_generated?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          ticket_id?: string;
+          content?: string;
+          is_ai_generated?: boolean;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "replies_ticket_id_fkey";
+            columns: ["ticket_id"];
+            referencedRelation: "tickets";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
